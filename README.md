@@ -1,3 +1,6 @@
+# Buit it with Sonnet 3.7 Free
+<https://claude.ai/share/ae9edfe2-2748-417e-a283-b71762a6d679>
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
