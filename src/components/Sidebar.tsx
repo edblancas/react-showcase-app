@@ -1,13 +1,17 @@
-import React from 'react';
+// File: src/components/Sidebar.tsx
+import React, { useEffect } from 'react';
 import { Stack, Button, TextInput, Title } from '@mantine/core';
 import { IconSearch, IconUser, IconPlanet, IconRocket } from '@tabler/icons-react';
 import { useAppContext } from '../context/AppContext';
 
 const Sidebar: React.FC = () => {
-  const { activeCategory, setActiveCategory } = useAppContext();
-
-  // Local state for search input
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const {
+    activeCategory,
+    setActiveCategory,
+    searchQuery,
+    setSearchQuery,
+    performSearch
+  } = useAppContext();
 
   // Reference to search input using useRef
   const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -19,7 +23,21 @@ const Sidebar: React.FC = () => {
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
+    // Clear search when changing categories
+    setSearchQuery('');
   };
+
+  // Function to handle search
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      performSearch(searchQuery);
+    }
+  };
+
+  // Reset search query when category changes
+  useEffect(() => {
+    setSearchQuery('');
+  }, [activeCategory, setSearchQuery]);
 
   return (
     <Stack spacing="md">
@@ -59,8 +77,25 @@ const Sidebar: React.FC = () => {
         placeholder={`Search ${activeCategory}`}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.currentTarget.value)}
-        rightSection={<IconSearch size="1.1rem" />}
+        onKeyDown={handleSearch}
+        rightSection={
+          <IconSearch
+            size="1.1rem"
+            style={{ cursor: 'pointer' }}
+            onClick={() => performSearch(searchQuery)}
+          />
+        }
       />
+
+      {searchQuery && (
+        <Button
+          variant="light"
+          onClick={() => performSearch(searchQuery)}
+          fullWidth
+        >
+          Search
+        </Button>
+      )}
     </Stack>
   );
 };

@@ -16,6 +16,7 @@ import {
   fetchCharacters,
   fetchPlanets,
   fetchStarships,
+  searchData,
   StarWarsCharacter,
   StarWarsPlanet,
   StarWarsStarship,
@@ -25,8 +26,14 @@ import {
 type DataItem = StarWarsCharacter | StarWarsPlanet | StarWarsStarship;
 
 const DataDisplay: React.FC = () => {
-  // Get active category from context
-  const { activeCategory } = useAppContext();
+  // Get active category and search state from context
+  const {
+    activeCategory,
+    searchQuery,
+    isSearching,
+    setSearchQuery,
+    performSearch
+  } = useAppContext();
 
   // Local state for data, loading state, pagination
   const [data, setData] = useState<DataItem[]>([]);
@@ -36,43 +43,81 @@ const DataDisplay: React.FC = () => {
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [selectedItem, setSelectedItem] = useState<DataItem | null>(null);
 
-  // useEffect hook to fetch data when category or page changes
+  // useEffect hook to fetch normal data when category or page changes
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
+    // Only fetch normal data when not searching
+    if (!isSearching) {
+      fetchNormalData();
+    }
+  }, [activeCategory, page, isSearching]);
 
-      try {
-        let response: ApiResponse<any>;
+  // useEffect hook to handle search queries
+  useEffect(() => {
+    if (isSearching && searchQuery.trim()) {
+      handleSearch();
+    }
+  }, [isSearching, searchQuery]);
 
-        switch (activeCategory) {
-          case 'people':
-            response = await fetchCharacters(page);
-            break;
-          case 'planets':
-            response = await fetchPlanets(page);
-            break;
-          case 'starships':
-            response = await fetchStarships(page);
-            break;
-          default:
-            response = await fetchCharacters(page);
-        }
+  // Function to fetch normal data (not search)
+  const fetchNormalData = async () => {
+    setLoading(true);
+    setError(null);
 
-        setData(response.results);
-        setHasNextPage(!!response.next);
-      } catch (err) {
-        setError('Failed to fetch data. Please try again.');
-        console.error(err);
-      } finally {
-        setLoading(false);
+    try {
+      let response: ApiResponse<any>;
+
+      switch (activeCategory) {
+        case 'people':
+          response = await fetchCharacters(page);
+          break;
+        case 'planets':
+          response = await fetchPlanets(page);
+          break;
+        case 'starships':
+          response = await fetchStarships(page);
+          break;
+        default:
+          response = await fetchCharacters(page);
       }
-    };
 
-    fetchData();
-    // Reset selected item when category changes
+      setData(response.results);
+      setHasNextPage(!!response.next);
+    } catch (err) {
+      setError('Failed to fetch data. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to perform search
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
     setSelectedItem(null);
-  }, [activeCategory, page]);
+
+    try {
+      const response = await searchData(activeCategory, searchQuery);
+      setData(response.results);
+      setHasNextPage(false); // Search results typically don't have pagination in this API
+    } catch (err) {
+      setError('Failed to search. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to clear search and go back to normal view
+  const clearSearch = () => {
+    performSearch('');
+    setPage(1);
+    setSelectedItem(null);
+  };
 
   // Function to render content based on item type
   const renderItemDetails = () => {
@@ -153,62 +198,95 @@ const DataDisplay: React.FC = () => {
 
   return (
     <Paper p="md">
-      <Title order={2} mb="md">
-        {activeCategory === 'people' ? 'Characters' :
-          activeCategory === 'planets' ? 'Planets' : 'Starships'}
-      </Title>
+      <Group position="apart" mb="md">
+        <Title order={2}>
+          {activeCategory === 'people' ? 'Characters' :
+            activeCategory === 'planets' ? 'Planets' : 'Starships'}
+        </Title>
+
+        {isSearching && (
+          <Badge size="lg" color="yellow">
+            Search results for: {searchQuery}
+          </Badge>
+        )}
+      </Group>
 
       <Grid>
         {/* Left side - List of items */}
         <Grid.Col span={{ base: 12, md: selectedItem ? 6 : 12 }}>
-          <Grid>
-            {data.map((item: any, index) => (
-              <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} key={index}>
-                <Card
-                  withBorder
-                  padding="md"
-                  onClick={() => setSelectedItem(item)}
-                  style={{
-                    cursor: 'pointer',
-                    transform: selectedItem === item ? 'scale(1.02)' : 'scale(1)',
-                    transition: 'transform 0.2s ease'
-                  }}
-                >
-                  <Card.Section withBorder inheritPadding py="xs">
-                    <Group justify="space-between">
-                      <Text fw={500}>{item.name}</Text>
-                      <Badge color="yellow">{activeCategory.slice(0, -1)}</Badge>
-                    </Group>
-                  </Card.Section>
+          {data.length === 0 ? (
+            <Center p="xl">
+              <Stack align="center" spacing="md">
+                <Text size="lg">No results found for "{searchQuery}"</Text>
+                <Button variant="light" onClick={clearSearch}>
+                  Back to all {activeCategory}
+                </Button>
+              </Stack>
+            </Center>
+          ) : (
+            <Grid>
+              {data.map((item: any, index) => (
+                <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} key={index}>
+                  <Card
+                    withBorder
+                    padding="md"
+                    onClick={() => setSelectedItem(item)}
+                    style={{
+                      cursor: 'pointer',
+                      transform: selectedItem === item ? 'scale(1.02)' : 'scale(1)',
+                      transition: 'transform 0.2s ease'
+                    }}
+                  >
+                    <Card.Section withBorder inheritPadding py="xs">
+                      <Group justify="space-between">
+                        <Text fw={500}>{item.name}</Text>
+                        <Badge color="yellow">{activeCategory.slice(0, -1)}</Badge>
+                      </Group>
+                    </Card.Section>
 
-                  <Text mt="sm" lineClamp={2}>
-                    {activeCategory === 'people' ? `Gender: ${item.gender}, Birth Year: ${item.birth_year}` :
-                      activeCategory === 'planets' ? `Terrain: ${item.terrain}, Climate: ${item.climate}` :
-                        `Model: ${item.model}, Class: ${item.starship_class}`}
-                  </Text>
-                </Card>
-              </Grid.Col>
-            ))}
-          </Grid>
+                    <Text mt="sm" lineClamp={2}>
+                      {activeCategory === 'people' ? `Gender: ${item.gender}, Birth Year: ${item.birth_year}` :
+                        activeCategory === 'planets' ? `Terrain: ${item.terrain}, Climate: ${item.climate}` :
+                          `Model: ${item.model}, Class: ${item.starship_class}`}
+                    </Text>
+                  </Card>
+                </Grid.Col>
+              ))}
+            </Grid>
+          )}
 
-          {/* Pagination controls */}
-          <Group justify="center" mt="xl">
-            <Button
-              variant="outline"
-              disabled={page === 1}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Text>Page {page}</Text>
-            <Button
-              variant="outline"
-              disabled={!hasNextPage}
-              onClick={() => setPage(p => p + 1)}
-            >
-              Next
-            </Button>
-          </Group>
+          {/* Pagination controls - Only show when not searching */}
+          {!isSearching && data.length > 0 && (
+            <Group justify="center" mt="xl">
+              <Button
+                variant="outline"
+                disabled={page === 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <Text>Page {page}</Text>
+              <Button
+                variant="outline"
+                disabled={!hasNextPage}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next
+              </Button>
+            </Group>
+          )}
+
+          {/* Show a "back to all results" button when searching */}
+          {isSearching && data.length > 0 && (
+            <Group justify="center" mt="xl">
+              <Button
+                variant="outline"
+                onClick={clearSearch}
+              >
+                Back to All Results
+              </Button>
+            </Group>
+          )}
         </Grid.Col>
 
         {/* Right side - Selected item details */}
