@@ -9,7 +9,8 @@ import {
   Loader,
   Center,
   Title,
-  Badge
+  Badge,
+  Stack,
 } from '@mantine/core';
 import { useAppContext } from '../context/AppContext';
 import {
@@ -26,14 +27,17 @@ import {
 type DataItem = StarWarsCharacter | StarWarsPlanet | StarWarsStarship;
 
 const DataDisplay: React.FC = () => {
+  const appContext = useAppContext();
+  if (!appContext) {
+    throw Error('appContext is undefined!')
+  }
   // Get active category and search state from context
   const {
     activeCategory,
     searchQuery,
     isSearching,
-    setSearchQuery,
     performSearch
-  } = useAppContext();
+  } = appContext;
 
   // Local state for data, loading state, pagination
   const [data, setData] = useState<DataItem[]>([]);

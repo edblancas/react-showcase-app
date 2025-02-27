@@ -6,7 +6,11 @@ import Sidebar from './Sidebar';
 import DataDisplay from './DataDisplay';
 
 const MainLayout: React.FC = () => {
-  const { darkMode } = useAppContext();
+  const appContext = useAppContext();
+  if (!appContext) {
+    throw Error('appContext is undefined!')
+  }
+  const { darkMode } = appContext
   const { setColorScheme } = useMantineColorScheme();
 
   // Update Mantine color scheme based on our context

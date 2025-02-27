@@ -4,7 +4,8 @@ import { IconSun, IconMoon } from '@tabler/icons-react';
 import { useAppContext } from '../context/AppContext';
 
 const Header: React.FC = () => {
-  const { darkMode, toggleDarkMode } = useAppContext();
+  // Use the non-null assertion operator if you are sure the provider is always present, ! at the end
+  const { darkMode, toggleDarkMode } = useAppContext()!;
   const { colorScheme } = useMantineColorScheme();
 
   return (

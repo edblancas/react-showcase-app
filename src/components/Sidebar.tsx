@@ -5,13 +5,14 @@ import { IconSearch, IconUser, IconPlanet, IconRocket } from '@tabler/icons-reac
 import { useAppContext } from '../context/AppContext';
 
 const Sidebar: React.FC = () => {
+  // Use the non-null assertion operator if you are sure the provider is always present, the ! at the end
   const {
     activeCategory,
     setActiveCategory,
     searchQuery,
     setSearchQuery,
     performSearch
-  } = useAppContext();
+  } = useAppContext()!;
 
   // Reference to search input using useRef
   const searchInputRef = React.useRef<HTMLInputElement>(null);
